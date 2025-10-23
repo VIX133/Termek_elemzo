@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai"; 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+//const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 async function fileToGenerativePart(file: File) {
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -62,6 +62,13 @@ const systemPrompt = `
 `;
 
 export async function POST(request: NextRequest) {
+  const apiKey = process.env.GOOGLE_API_KEY;
+   if (!apiKey) {
+    console.error("Hiba: A GOOGLE_API_KEY környezeti változó nincs beállítva.");
+    return NextResponse.json({ error: 'Szerver konfigurációs hiba: API kulcs hiányzik.' }, { status: 500 });
+  }
+  const genAI = new GoogleGenerativeAI(apiKey);
+  
   try {
     const formData = await request.formData();
     const fileValue = formData.get('file');

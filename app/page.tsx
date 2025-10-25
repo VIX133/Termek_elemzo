@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Upload, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Loader2, AlertCircle, Download } from 'lucide-react';
 
 interface TapertJellemzok {
   energia: string | null;
@@ -26,6 +26,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [result, setResult] = useState<ApiResult | null>(null);
+  const [rawResponse, setRawResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,6 +47,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setRawResponse(null);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -61,6 +63,14 @@ export default function Home() {
         throw new Error(errData.error || 'Hiba a feldolgozás során a szerveren.');
       }
 
+      // Klónozzuk a választ, mielőtt feldolgoznánk
+      const responseClone = response.clone();
+      
+      // Nyers válasz mentése
+      const responseText = await responseClone.text();
+      setRawResponse(responseText);
+      
+      // Eredmények feldolgozása
       const data: ApiResult = await response.json();
       setResult(data);
 
@@ -73,6 +83,20 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadRawJson = () => {
+    if (!rawResponse) return;
+    
+    const blob = new Blob([rawResponse], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `raw-response-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -91,7 +115,7 @@ export default function Home() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* 3. Fájl feltöltő mező */}
+              {/* Fájl feltöltő mező */}
               <div>
                 <Input
                   ref={fileInputRef}
@@ -115,7 +139,7 @@ export default function Home() {
                 </Button>
               </div>
 
-              {/* 4. Küldés gomb */}
+              {/* Küldés gomb */}
               <Button type="submit" disabled={loading || !file} className="w-full">
                 {loading ? (
                   <>
@@ -128,7 +152,7 @@ export default function Home() {
               </Button>
             </form>
 
-            {/* 5. Hibaüzenet */}
+            {/* Hibaüzenet */}
             {error && (
               <Card className="mt-6 border-destructive">
                 <CardContent className="pt-6">
@@ -140,7 +164,7 @@ export default function Home() {
               </Card>
             )}
 
-            {/* 6. Eredmények megjelenítése */}
+            {/* Eredmények megjelenítése */}
             {result && (
               <div className="mt-6 space-y-4">
                 <Card>
@@ -173,6 +197,18 @@ export default function Home() {
                           </React.Fragment>
                         ))}
                       </dl>
+                    </div>
+                    
+                    {/* Nyers JSON letöltése gomb */}
+                    <div className="pt-4 border-t">
+                      <Button 
+                        variant="outline" 
+                        onClick={downloadRawJson}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Nyers JSON letöltése
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
